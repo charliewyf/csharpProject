@@ -85,81 +85,32 @@
 main
 {
 :stWait
-    Connect(6)->stAllocMedia
     Connect->stAllocMedia
 :stAllocMedia
     [ AllocMediaDevice 1 ]
-    //AllocResourceOK->stBillBegin
-    AllocResourceOK->stJudge00ForOp    //话务员拨打00的功能
+    AllocResourceOK->stDeleteDeviceRepeat
     AllocResourceFail->stExit
-    
-//wyfadd 20110307   for operator call 9668900 start
-:stJudge00ForOp
-    [ Equal $CalledID,"9668900" ]
-    Passed->stJudgeIfNeixianOp
-    Failed->stBillBegin
-
-:stJudgeIfNeixianOp
-    [ StrLen $CallerID ]
-    [ Less IR0,8 ]
-    Passed->stOperatorSet
-    Failed->stJudgeIfOutOperator
-
-:stJudgeIfOutOperator
-    [ StrRight $CallerID,11 ]
-    [ Strstr @vox_outOperatorTel,SR0 ]
-    [ Great IR0,0 ]
-    Passed->stOperatorSet
-    Failed->stBillBegin
-
-:stOperatorSet
-     [ ClearDTMF ]
-     [ SetDTMF "D" ]
-     [ ASSIGN SR1,".\vox\" ]
-     [ STRCAT SR1,"inputop.vox" ]               //请输入
-     [ PLAYFILE SR1 ]
-     StopPlayBack ->stGetOpeDigit
-     DialTerminate ->stGetOpeDigit
-     Failed ->stGetOpeDigit
-
-:stGetOpeDigit
-    [ SetDTMF "#*" ]
-    [ Input 2,15 ]
-    StopDigits('#')->stDeleteDeviceRepeat
-    StopDigits('*')->stDeleteDeviceRepeat
-    StopDigits->stDeleteDeviceRepeat
-    TimeOut->stDeleteDeviceRepeat
-    [ Assign $Operator,SR0 ]
-
-//wyfadd 20110307   for operator call 9668900 end 
-
-
-:stBillBegin
-    [ ClearDTMF ]
-    ->stDeleteDeviceRepeat
 
 :stDeleteDeviceRepeat
+	[ ClearDTMF ]
     [ Assign SR1,"delete T_JH9668911 where DEVICEID=" ]
     [ ItoS $Device1 ]
     [ Strcat SR1,SR0 ]
     [ ExecSQL SR1 ]
-    Passed->stBillBeginAddQuhao2
-    Failed->stBillBeginAddQuhao2
-    TimeOut->stBillBeginAddQuhao2
+    Passed->stBillBegin
+    Failed->stBillBegin
+    TimeOut->stBillBegin
 
-:stBillBeginAddQuhao2
+:stBillBegin
     [ NowTime ]
-    [ Assign IR28,IR0 ]
-    [ Assign IR4,0 ]
+    [ Assign IR28,IR0 ]// IR28 save the start time of this thread, **don't update it
+    [ Assign IR4,0 ]	//IR4 save the user status, 0-free, others-busy
     [ OnCallCleared  &destoryflow ]
-
 
     [ SetDBTimeOut 30 ]                 //dawei add 2003.11.12 22:20
     [ BillBegin 1,0,$ServiceItemNo ]
-    //Verify(0)  -> stydxs
     Verify(0)  -> stPlayZFCX
     Verify(-1) -> stExit
-    //->stPlayZFCX
 
 :stPlayZFCX
 
